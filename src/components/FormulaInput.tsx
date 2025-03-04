@@ -271,7 +271,7 @@ const FormulaInput = () => {
 
   
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getTagColor = (category?: string) => {
+  const getTagColor = (_category?: string) => {
     const colorMap = {
       'income': { bg: '#dcfce7', text: '#166534', border: '#86efac' },
       'expense': { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
