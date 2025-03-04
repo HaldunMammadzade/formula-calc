@@ -1,8 +1,17 @@
 import { create } from "zustand";
 
+interface FormulaTag {
+  id: string;
+  name: string;
+  value: number;
+  category: string;
+}
+
+type FormulaItem = FormulaTag | string;
+
 interface FormulaStore {
-  formula: string[];
-  addTag: (tag: string) => void;
+  formula: FormulaItem[];
+  addTag: (tag: FormulaItem) => void;
   removeLastTag: () => void;
 }
 

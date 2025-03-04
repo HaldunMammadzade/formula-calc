@@ -18,14 +18,10 @@ interface SuggestionItem {
 
 type FormulaItem = FormulaTag | string;
 
-interface FormulaStoreState {
-  formula: FormulaItem[];
-}
-
 const OPERATORS = ["+", "-", "*", "/", "^", "(", ")"];
 
 const FormulaInput = () => {
-  const { formula } = useFormulaStore() as { formula: FormulaItem[] };
+  const { formula }: { formula: (FormulaTag | string)[] } = useFormulaStore();
   const [inputValue, setInputValue] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
   const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
@@ -47,17 +43,23 @@ const FormulaInput = () => {
     useFormulaStore.setState({ formula: newFormula });
   };
   
+  
   const shouldFetchSuggestions = inputValue.trim() !== "" && /[a-zA-Z]/.test(inputValue);
   const { data: suggestions = [] } = useAutocomplete(shouldFetchSuggestions ? inputValue : "") as { 
     data: SuggestionItem[] 
   };
+
+  const isFormulaTag = (item: FormulaItem): item is FormulaTag => {
+    return typeof item === "object" && item !== null && "name" in item;
+  };
   
-  const getFormattedFormula = () => {
+  const getFormattedFormula = (): string[] => {
     return formula.map(item => {
-      return typeof item === "object" ? `{{${item.name}}}` : item;
+      return isFormulaTag(item) ? `{{${item.name}}}` : (item as string);
     });
   };
 
+ 
   const calculateTotal = () => {
     if (!formula.length) return 0;
     
@@ -65,8 +67,8 @@ const FormulaInput = () => {
       let expression = '';
       
       formula.forEach(item => {
-        if (typeof item === "object") {
-          expression += `(${item.value})`;
+        if (typeof item === "object" && item !== null) {
+          expression += `(${(item as FormulaTag).value})`;
         } else if (OPERATORS.includes(item)) {
           if (item === '*') {
             expression += '*'; 
@@ -137,14 +139,15 @@ const FormulaInput = () => {
   };
 
   const insertItemAtCursor = (item: FormulaItem) => {
-    const newFormula = [...formula];
-    newFormula.splice(cursorPosition, 0, item);
+    const newFormula: (FormulaTag | string)[] = [...formula]; 
+    newFormula.splice(cursorPosition, 0, item as FormulaTag | string); 
     updateFormula(newFormula);
     setCursorPosition(cursorPosition + 1);
     setInputValue("");
     setShowSuggestions(false);
     setEditingTagIndex(null);
   };
+  
 
   const deleteItemAtCursor = () => {
     if (cursorPosition > 0) {
@@ -163,15 +166,18 @@ const FormulaInput = () => {
     setEditingTagIndex(null);
   };
 
+  
   const handleTagClick = (index: number) => {
     setEditingTagIndex(index === editingTagIndex ? null : index);
     setCursorPosition(index + 1);
     setInputValue("");
     setShowSuggestions(false);
     
+    
     if (inputRef.current) inputRef.current.focus();
   };
 
+  
   const parseAndInsertInput = (inputText: string) => {
     const operatorWithNumberRegex = /^([+\-*/^])([\d.]+)$/;
     const match = inputText.match(operatorWithNumberRegex);
@@ -187,7 +193,9 @@ const FormulaInput = () => {
     }
   };
 
+  
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Left/right navigation through formula
     if (e.key === "ArrowLeft" && cursorPosition > 0) {
       e.preventDefault();
       setCursorPosition(cursorPosition - 1);
@@ -196,10 +204,14 @@ const FormulaInput = () => {
       e.preventDefault();
       setCursorPosition(cursorPosition + 1);
       setEditingTagIndex(null);
-    } else if (e.key === "Backspace" && inputValue === "") {
+    } 
+    // Backspace to delete
+    else if (e.key === "Backspace" && inputValue === "") {
       e.preventDefault();
       deleteItemAtCursor();
-    } else if (showSuggestions && suggestions.length > 0) {
+    } 
+    // Navigate suggestions
+    else if (showSuggestions && suggestions.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedSuggestionIndex(prev => 
@@ -214,6 +226,7 @@ const FormulaInput = () => {
         e.preventDefault();
         const selectedItem = suggestions[selectedSuggestionIndex];
         
+        // If we're editing a tag, replace it instead of inserting
         if (editingTagIndex !== null && typeof formula[editingTagIndex] === "object") {
           replaceTag(editingTagIndex, {
             id: selectedItem.id,
@@ -230,13 +243,16 @@ const FormulaInput = () => {
           });
         }
       }
-    } else if (e.key === "Enter" && inputValue.trim() !== "") {
+    } 
+    else if (e.key === "Enter" && inputValue.trim() !== "") {
       e.preventDefault();
       const value = inputValue.trim();
       
+     
       if (/[\d+\-*/^()]{3,}/.test(value) && /[+\-*/^()]/.test(value)) {
         processExpression(value);
       } else {
+       
         parseAndInsertInput(value);
       }
       
@@ -248,14 +264,15 @@ const FormulaInput = () => {
     const value = e.target.value;
     setInputValue(value);
     
+   
     setShowSuggestions(/[a-zA-Z]/.test(value));
     if (/[a-zA-Z]/.test(value)) setSelectedSuggestionIndex(-1);
   };
 
-  const getTagColor = (category: string) => {
-    const colorMap: {
-      [key: string]: { bg: string; text: string; border: string }
-    } = {
+  
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const getTagColor = (category?: string) => {
+    const colorMap = {
       'income': { bg: '#dcfce7', text: '#166534', border: '#86efac' },
       'expense': { bg: '#fee2e2', text: '#991b1b', border: '#fca5a5' },
       'saving': { bg: '#e0f2fe', text: '#0c4a6e', border: '#7dd3fc' },
@@ -263,7 +280,7 @@ const FormulaInput = () => {
       'default': { bg: '#e5edff', text: '#1e40af', border: '#bfdbfe' }
     };
     
-    return colorMap[category] || colorMap.default;
+    return colorMap.default;
   };
 
   const renderTagEditingDropdown = (index: number) => {
@@ -389,7 +406,7 @@ const FormulaInput = () => {
                     opacity: "0.7", 
                     fontSize: "12px" 
                   }}>
-                    ({(formula[index] as FormulaTag).value})
+                    ({(formula[index] as unknown as FormulaTag).value})
                   </span>
                 </>
               ) : item}
@@ -459,6 +476,7 @@ const FormulaInput = () => {
       <div style={{ position: "relative", marginBottom: "20px" }}>
         {renderFormula()}
         
+        {/* Main suggestions dropdown */}
         {showSuggestions && suggestions.length > 0 && editingTagIndex === null && (
           <ul
             style={{
@@ -572,6 +590,7 @@ const FormulaInput = () => {
         )}
       </div>
       
+ 
       <div style={{ 
         marginTop: "20px", 
         padding: "12px", 
