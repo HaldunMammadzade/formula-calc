@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 
-
 const fetchSuggestions = async (query: string) => {
   if (!query.trim()) return [];
 
@@ -24,7 +23,6 @@ export const useAutocomplete = (query: string) => {
     queryFn: () => fetchSuggestions(query),
     enabled: query.trim().length > 0,
     staleTime: 5000, 
-    // cacheTime: 10000, 
     refetchOnWindowFocus: false, 
   });
 
